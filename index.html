@@ -11,9 +11,9 @@
   <title>Porter Home Library</title>
 
   <link
-  rel="apple-touch-icon"
-  href="/porter-home-library-assets/apple-touch-icon.png?v=2"
->
+    rel="apple-touch-icon"
+    href="./apple-touch-icon.png"
+  >
 
   <link
     rel="icon"
@@ -27,24 +27,50 @@
   <meta name="apple-mobile-web-app-title" content="Porter Library">
 
   <style>
+    :root {
+      --cream: #F5F0E6;
+      --navy: #16324F;
+      --muted: #53697A;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     html,
     body {
-      min-height: 100%;
+      width: 100%;
+      height: 100%;
       margin: 0;
+      overflow: hidden;
+      background: var(--cream);
     }
 
-    body {
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+
       display: grid;
       place-items: center;
-      background: #F5F0E6;
-      color: #16324F;
-      font-family: Arial, sans-serif;
+
+      background: var(--cream);
+      color: var(--navy);
       text-align: center;
+
+      transition:
+        opacity 350ms ease,
+        visibility 350ms ease;
     }
 
-    main {
-      width: min(88vw, 420px);
-      padding: 32px 20px;
+    #splash.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .splash-content {
+      padding: 32px 24px;
     }
 
     .logo {
@@ -61,61 +87,69 @@
     }
 
     p {
-      margin: 0 0 24px;
+      margin: 0;
+      color: var(--muted);
+      font-family: Arial, sans-serif;
       line-height: 1.5;
-      color: #53697A;
     }
 
-    a {
+    #libraryFrame {
       display: block;
-      padding: 16px 20px;
-      border-radius: 14px;
-      background: #2CA295;
-      color: white;
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    .hint {
-      margin-top: 20px;
-      font-size: 14px;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: white;
     }
   </style>
 </head>
 
 <body>
-  <main>
-    <img
-      class="logo"
-      src="./porter-icon.png"
-      alt="Porter Home Library"
-    >
+  <div id="splash">
+    <div class="splash-content">
+      <img
+        class="logo"
+        src="./porter-icon.png"
+        alt="Porter Home Library"
+      >
 
-    <h1>Porter Home Library</h1>
+      <h1>Porter Home Library</h1>
+      <p>Opening your family library…</p>
+    </div>
+  </div>
 
-    <p>
-      Search, choose, and catalog your family library.
-    </p>
-
-    <a href="https://script.google.com/macros/s/AKfycbwVu_8w1Y7zhlBSlnLxUok8J2gzth9lKP_vXf-dwZxEfwxvJZ8OzBf4qexu5DIuFj6X/exec">
-      Open Library
-    </a>
-
-    <p class="hint">
-      On iPhone, use Share → Add to Home Screen from this page.
-    </p>
-  </main>
+  <iframe
+    id="libraryFrame"
+    title="Porter Home Library"
+    src="https://script.google.com/macros/s/AKfycbwVu_8w1Y7zhlBSlnLxUok8J2gzth9lKP_vXf-dwZxEfwxvJZ8OzBf4qexu5DIuFj6X/exec"
+    allow="camera; microphone"
+  ></iframe>
 
   <script>
-    const libraryUrl = 'https://script.google.com/macros/s/AKfycbwVu_8w1Y7zhlBSlnLxUok8J2gzth9lKP_vXf-dwZxEfwxvJZ8OzBf4qexu5DIuFj6X/exec';
+    const splash = document.getElementById('splash');
+    const libraryFrame = document.getElementById('libraryFrame');
 
-    const launchedFromHomeScreen =
-      window.navigator.standalone === true ||
-      window.matchMedia('(display-mode: standalone)').matches;
+    let minimumSplashFinished = false;
+    let libraryLoaded = false;
 
-    if (launchedFromHomeScreen) {
-      window.location.replace(libraryUrl);
+    function hideSplashWhenReady() {
+      if (minimumSplashFinished && libraryLoaded) {
+        splash.classList.add('hidden');
+      }
     }
+
+    window.setTimeout(() => {
+      minimumSplashFinished = true;
+      hideSplashWhenReady();
+    }, 1000);
+
+    libraryFrame.addEventListener('load', () => {
+      libraryLoaded = true;
+      hideSplashWhenReady();
+    });
+
+    window.setTimeout(() => {
+      splash.classList.add('hidden');
+    }, 8000);
   </script>
 </body>
 </html>
