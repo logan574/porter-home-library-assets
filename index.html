@@ -13,13 +13,13 @@
   <link
     rel="apple-touch-icon"
     sizes="180x180"
-    href="porter-icon.png"
+    href="./porter-icon.png"
   >
 
   <link
     rel="icon"
     type="image/png"
-    href="porter-icon.png"
+    href="./porter-icon.png"
   >
 
   <meta name="theme-color" content="#F5F0E6">
@@ -27,15 +27,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Porter Library">
 
-  <meta
-    http-equiv="refresh"
-    content="0; url=https://script.google.com/macros/s/AKfycbwVu_8w1Y7zhlBSlnLxUok8J2gzth9lKP_vXf-dwZxEfwxvJZ8OzBf4qexu5DIuFj6X/exec"
-  >
-
   <style>
     html,
     body {
-      height: 100%;
+      min-height: 100%;
       margin: 0;
     }
 
@@ -44,42 +39,84 @@
       place-items: center;
       background: #F5F0E6;
       color: #16324F;
-      font-family: Georgia, serif;
+      font-family: Arial, sans-serif;
       text-align: center;
     }
 
-    .loading {
-      padding: 24px;
+    main {
+      width: min(88vw, 420px);
+      padding: 32px 20px;
     }
 
     .logo {
-      width: 120px;
-      height: 120px;
-      border-radius: 24px;
-      margin-bottom: 18px;
+      width: 160px;
+      height: 160px;
+      border-radius: 32px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: Georgia, serif;
+      font-size: 32px;
     }
 
     p {
-      margin: 0;
-      font-family: Arial, sans-serif;
+      margin: 0 0 24px;
+      line-height: 1.5;
+      color: #53697A;
+    }
+
+    a {
+      display: block;
+      padding: 16px 20px;
+      border-radius: 14px;
+      background: #2CA295;
+      color: white;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .hint {
+      margin-top: 20px;
+      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
-  <div class="loading">
+  <main>
     <img
       class="logo"
-      src="porter-icon.png"
+      src="./porter-icon.png"
       alt="Porter Home Library"
     >
-    <p>Opening Porter Home Library…</p>
-  </div>
+
+    <h1>Porter Home Library</h1>
+
+    <p>
+      Search, choose, and catalog your family library.
+    </p>
+
+    <a href="https://script.google.com/macros/s/AKfycbwVu_8w1Y7zhlBSlnLxUok8J2gzth9lKP_vXf-dwZxEfwxvJZ8OzBf4qexu5DIuFj6X/exec">
+      Open Library
+    </a>
+
+    <p class="hint">
+      On iPhone, use Share → Add to Home Screen from this page.
+    </p>
+  </main>
 
   <script>
-    window.location.replace(
-      'https://script.google.com/macros/s/AKfycbwVu_8w1Y7zhlBSlnLxUok8J2gzth9lKP_vXf-dwZxEfwxvJZ8OzBf4qexu5DIuFj6X/exec'
-    );
+    const libraryUrl = 'https://script.google.com/macros/s/AKfycbwVu_8w1Y7zhlBSlnLxUok8J2gzth9lKP_vXf-dwZxEfwxvJZ8OzBf4qexu5DIuFj6X/exec';
+
+    const launchedFromHomeScreen =
+      window.navigator.standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches;
+
+    if (launchedFromHomeScreen) {
+      window.location.replace(libraryUrl);
+    }
   </script>
 </body>
 </html>
