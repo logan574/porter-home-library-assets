@@ -386,10 +386,10 @@
     let minimumSplashFinished = false;
     let libraryLoaded = false;
 
-    let scanner = null;
-    let scannerRunning = false;
-    let scanHandled = false;
-
+let scanner = null;
+let scannerRunning = false;
+let scanHandled = false;
+let scannerRequestSource = null;
 
     function hideSplashWhenReady() {
       if (
@@ -593,13 +593,20 @@
         'true'
       );
 
-      libraryFrame.contentWindow.postMessage(
-        {
-          type: 'porter-isbn-scan',
-          isbn
-        },
-        '*'
-      );
+if (scannerRequestSource) {
+  scannerRequestSource.postMessage(
+    {
+      type: 'porter-isbn-scan',
+      isbn
+    },
+    '*'
+  );
+} else {
+  setScannerStatus(
+    'The library connection was lost. Close the scanner and try again.',
+    true
+  );
+}
     }
 
 
@@ -720,26 +727,20 @@
     }
 
 
-    window.addEventListener(
-      'message',
-      event => {
-        if (
-          event.source !==
-          libraryFrame.contentWindow
-        ) {
-          return;
-        }
+window.addEventListener(
+  'message',
+  event => {
+    const message = event.data || {};
 
-        const message = event.data || {};
-
-        if (
-          message.type ===
-          'porter-open-barcode-scanner'
-        ) {
-          openScannerOverlay();
-        }
-      }
-    );
+    if (
+      message.type ===
+      'porter-open-barcode-scanner'
+    ) {
+      scannerRequestSource = event.source;
+      openScannerOverlay();
+    }
+  }
+);
 
 
     scannerStartButton.addEventListener(
