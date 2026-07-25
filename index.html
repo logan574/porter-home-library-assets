@@ -23,14 +23,28 @@
 
   <meta name="theme-color" content="#F5F0E6">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Porter Library">
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+  >
+  <meta
+    name="apple-mobile-web-app-title"
+    content="Porter Library"
+  >
+
+  <script
+    src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+  ></script>
 
   <style>
     :root {
       --cream: #F5F0E6;
       --navy: #16324F;
+      --teal: #2CA295;
+      --white: #FFFFFF;
       --muted: #53697A;
+      --border: #D6DEE6;
+      --danger: #B3261E;
     }
 
     * {
@@ -44,12 +58,23 @@
       margin: 0;
       overflow: hidden;
       background: var(--cream);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
     }
 
     #splash {
       position: fixed;
       inset: 0;
-      z-index: 2;
+      z-index: 20;
 
       display: grid;
       place-items: center;
@@ -76,8 +101,8 @@
     .logo {
       width: 160px;
       height: 160px;
-      border-radius: 32px;
       margin-bottom: 20px;
+      border-radius: 32px;
     }
 
     h1 {
@@ -89,7 +114,6 @@
     p {
       margin: 0;
       color: var(--muted);
-      font-family: Arial, sans-serif;
       line-height: 1.5;
     }
 
@@ -99,6 +123,149 @@
       height: 100%;
       border: 0;
       background: white;
+    }
+
+    #scannerOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+
+      display: none;
+      overflow-y: auto;
+
+      padding:
+        max(18px, env(safe-area-inset-top))
+        16px
+        max(24px, env(safe-area-inset-bottom));
+
+      background: var(--cream);
+      color: var(--navy);
+    }
+
+    #scannerOverlay.visible {
+      display: block;
+    }
+
+    .scanner-shell {
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .scanner-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .scanner-heading {
+      min-width: 0;
+    }
+
+    .scanner-heading h2 {
+      margin: 0 0 4px;
+      font-size: 24px;
+    }
+
+    .scanner-heading p {
+      font-size: 14px;
+    }
+
+    .scanner-close-button {
+      flex: 0 0 auto;
+      width: 46px;
+      height: 46px;
+
+      border: 1px solid var(--border);
+      border-radius: 12px;
+
+      background: var(--white);
+      color: var(--navy);
+
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .scanner-panel {
+      padding: 16px;
+
+      border: 1px solid var(--border);
+      border-radius: 16px;
+
+      background: var(--white);
+      box-shadow: 0 8px 24px rgba(22, 50, 79, 0.1);
+    }
+
+    .scanner-buttons {
+      display: grid;
+      gap: 10px;
+    }
+
+    .scanner-primary,
+    .scanner-secondary {
+      width: 100%;
+      min-height: 48px;
+      padding: 11px 14px;
+
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .scanner-primary {
+      border: 0;
+      background: var(--teal);
+      color: var(--white);
+    }
+
+    .scanner-secondary {
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--navy);
+    }
+
+    #scannerReader {
+      display: none;
+      width: 100%;
+      min-height: 260px;
+      margin-top: 16px;
+
+      overflow: hidden;
+
+      border: 1px solid var(--border);
+      border-radius: 14px;
+
+      background: #000;
+    }
+
+    #scannerReader.visible {
+      display: block;
+    }
+
+    #scannerReader video {
+      width: 100% !important;
+    }
+
+    #scannerStatus {
+      min-height: 24px;
+      margin-top: 14px;
+
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    #scannerStatus.error {
+      color: var(--danger);
+    }
+
+    .scanner-help {
+      margin-top: 12px;
+
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
     }
   </style>
 </head>
@@ -113,7 +280,74 @@
       >
 
       <h1>Porter Home Library</h1>
-      <p>Opening your family library…</p>
+
+      <p>
+        Opening your family library…
+      </p>
+    </div>
+  </div>
+
+  <div
+    id="scannerOverlay"
+    aria-hidden="true"
+  >
+    <div class="scanner-shell">
+      <div class="scanner-header">
+        <div class="scanner-heading">
+          <h2>Scan Book Barcode</h2>
+
+          <p>
+            Aim the rear camera at the ISBN barcode
+            on the back of the book.
+          </p>
+        </div>
+
+        <button
+          id="scannerCloseButton"
+          class="scanner-close-button"
+          type="button"
+          aria-label="Close barcode scanner"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="scanner-panel">
+        <div class="scanner-buttons">
+          <button
+            id="scannerStartButton"
+            class="scanner-primary"
+            type="button"
+          >
+            Start Camera
+          </button>
+
+          <button
+            id="scannerStopButton"
+            class="scanner-secondary"
+            type="button"
+            disabled
+          >
+            Stop Camera
+          </button>
+        </div>
+
+        <div id="scannerReader"></div>
+
+        <div
+          id="scannerStatus"
+          aria-live="polite"
+        >
+          Tap Start Camera to begin.
+        </div>
+
+        <div class="scanner-help">
+          Hold the book steady and make sure the entire
+          barcode is visible. Camera access is requested
+          from this GitHub page rather than the embedded
+          Google app.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -121,35 +355,419 @@
     id="libraryFrame"
     title="Porter Home Library"
     src="https://script.google.com/macros/s/AKfycbwVu_8w1Y7zhlBSlnLxUok8J2gzth9lKP_vXf-dwZxEfwxvJZ8OzBf4qexu5DIuFj6X/exec"
-    allow="camera; microphone"
+    allow="camera"
   ></iframe>
 
   <script>
-    const splash = document.getElementById('splash');
-    const libraryFrame = document.getElementById('libraryFrame');
+    const splash =
+      document.getElementById('splash');
+
+    const libraryFrame =
+      document.getElementById('libraryFrame');
+
+    const scannerOverlay =
+      document.getElementById('scannerOverlay');
+
+    const scannerStartButton =
+      document.getElementById('scannerStartButton');
+
+    const scannerStopButton =
+      document.getElementById('scannerStopButton');
+
+    const scannerCloseButton =
+      document.getElementById('scannerCloseButton');
+
+    const scannerReader =
+      document.getElementById('scannerReader');
+
+    const scannerStatus =
+      document.getElementById('scannerStatus');
 
     let minimumSplashFinished = false;
     let libraryLoaded = false;
 
+    let scanner = null;
+    let scannerRunning = false;
+    let scanHandled = false;
+
+
     function hideSplashWhenReady() {
-      if (minimumSplashFinished && libraryLoaded) {
+      if (
+        minimumSplashFinished &&
+        libraryLoaded
+      ) {
         splash.classList.add('hidden');
       }
     }
+
 
     window.setTimeout(() => {
       minimumSplashFinished = true;
       hideSplashWhenReady();
     }, 1000);
 
-    libraryFrame.addEventListener('load', () => {
-      libraryLoaded = true;
-      hideSplashWhenReady();
-    });
+
+    libraryFrame.addEventListener(
+      'load',
+      () => {
+        libraryLoaded = true;
+        hideSplashWhenReady();
+      }
+    );
+
 
     window.setTimeout(() => {
       splash.classList.add('hidden');
     }, 8000);
+
+
+    function openScannerOverlay() {
+      scanHandled = false;
+
+      scannerOverlay.classList.add('visible');
+
+      scannerOverlay.setAttribute(
+        'aria-hidden',
+        'false'
+      );
+
+      setScannerStatus(
+        'Tap Start Camera to begin.'
+      );
+
+      scannerStartButton.disabled = false;
+      scannerStopButton.disabled = true;
+    }
+
+
+    async function closeScannerOverlay() {
+      await stopScanner(false);
+
+      scannerOverlay.classList.remove('visible');
+
+      scannerOverlay.setAttribute(
+        'aria-hidden',
+        'true'
+      );
+    }
+
+
+    async function startScanner() {
+      if (scannerRunning) {
+        return;
+      }
+
+      if (typeof Html5Qrcode === 'undefined') {
+        setScannerStatus(
+          'Barcode scanner failed to load. Reload the app and try again.',
+          true
+        );
+
+        return;
+      }
+
+      scanHandled = false;
+
+      scannerStartButton.disabled = true;
+      scannerStopButton.disabled = true;
+
+      scannerReader.classList.add('visible');
+
+      setScannerStatus(
+        'Requesting camera access…'
+      );
+
+      try {
+        scanner =
+          scanner ||
+          new Html5Qrcode(
+            'scannerReader',
+            {
+              formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.UPC_A
+              ],
+              useBarCodeDetectorIfSupported: true
+            }
+          );
+
+        await scanner.start(
+          {
+            facingMode: 'environment'
+          },
+          {
+            fps: 10,
+            qrbox: scannerQrboxSize,
+            aspectRatio: 1.777778
+          },
+          handleScanSuccess,
+          () => {
+            // Ordinary scan misses are ignored.
+          }
+        );
+
+        scannerRunning = true;
+
+        scannerStartButton.disabled = true;
+        scannerStopButton.disabled = false;
+
+        setScannerStatus(
+          'Camera ready. Aim at the book barcode.'
+        );
+
+      } catch (error) {
+        scannerRunning = false;
+
+        scannerReader.classList.remove('visible');
+
+        scannerStartButton.disabled = false;
+        scannerStopButton.disabled = true;
+
+        setScannerStatus(
+          getScannerErrorMessage(error),
+          true
+        );
+      }
+    }
+
+
+    function scannerQrboxSize(
+      viewfinderWidth,
+      viewfinderHeight
+    ) {
+      const width = Math.floor(
+        Math.min(
+          viewfinderWidth * 0.9,
+          420
+        )
+      );
+
+      const height = Math.floor(
+        Math.max(
+          110,
+          Math.min(
+            width * 0.38,
+            viewfinderHeight * 0.45
+          )
+        )
+      );
+
+      return {
+        width,
+        height
+      };
+    }
+
+
+    async function handleScanSuccess(
+      decodedText
+    ) {
+      if (scanHandled) {
+        return;
+      }
+
+      const isbn =
+        normalizeScannedBarcode(decodedText);
+
+      if (!isbn) {
+        setScannerStatus(
+          `A barcode was detected, but it was not a valid ISBN: ${decodedText}`,
+          true
+        );
+
+        return;
+      }
+
+      scanHandled = true;
+
+      setScannerStatus(
+        `ISBN ${isbn} detected. Opening Book Intake…`
+      );
+
+      await stopScanner(false);
+
+      scannerOverlay.classList.remove('visible');
+
+      scannerOverlay.setAttribute(
+        'aria-hidden',
+        'true'
+      );
+
+      libraryFrame.contentWindow.postMessage(
+        {
+          type: 'porter-isbn-scan',
+          isbn
+        },
+        '*'
+      );
+    }
+
+
+    function normalizeScannedBarcode(value) {
+      const digits = String(value || '')
+        .replace(/\D/g, '');
+
+      if (digits.length === 13) {
+        return digits;
+      }
+
+      if (digits.length === 12) {
+        return `0${digits}`;
+      }
+
+      return '';
+    }
+
+
+    async function stopScanner(
+      updateStatus = true
+    ) {
+      if (
+        !scanner ||
+        !scannerRunning
+      ) {
+        scannerRunning = false;
+
+        scannerStartButton.disabled = false;
+        scannerStopButton.disabled = true;
+
+        scannerReader.classList.remove('visible');
+
+        return;
+      }
+
+      try {
+        await scanner.stop();
+
+      } catch (error) {
+        console.warn(
+          'Barcode scanner stop failed:',
+          error
+        );
+      }
+
+      scannerRunning = false;
+
+      scannerStartButton.disabled = false;
+      scannerStopButton.disabled = true;
+
+      scannerReader.classList.remove('visible');
+
+      if (updateStatus) {
+        setScannerStatus(
+          'Camera stopped.'
+        );
+      }
+    }
+
+
+    function setScannerStatus(
+      message,
+      isError = false
+    ) {
+      scannerStatus.textContent = message;
+
+      scannerStatus.classList.toggle(
+        'error',
+        isError
+      );
+    }
+
+
+    function getScannerErrorMessage(error) {
+      const message =
+        error && error.message
+          ? error.message
+          : String(error || 'Unknown error');
+
+      const lowerMessage =
+        message.toLowerCase();
+
+      if (
+        lowerMessage.includes('permission') ||
+        lowerMessage.includes('notallowed') ||
+        lowerMessage.includes('denied')
+      ) {
+        return (
+          'Camera permission was denied. Allow camera access ' +
+          'for logan574.github.io in Safari Website Settings.'
+        );
+      }
+
+      if (
+        lowerMessage.includes('notfound') ||
+        lowerMessage.includes('no camera')
+      ) {
+        return (
+          'No usable camera was found on this device.'
+        );
+      }
+
+      if (
+        lowerMessage.includes('not readable') ||
+        lowerMessage.includes('notreadable')
+      ) {
+        return (
+          'The camera is already being used by another app. ' +
+          'Close the other app and try again.'
+        );
+      }
+
+      return (
+        'Camera could not start: ' +
+        message
+      );
+    }
+
+
+    window.addEventListener(
+      'message',
+      event => {
+        if (
+          event.source !==
+          libraryFrame.contentWindow
+        ) {
+          return;
+        }
+
+        const message = event.data || {};
+
+        if (
+          message.type ===
+          'porter-open-barcode-scanner'
+        ) {
+          openScannerOverlay();
+        }
+      }
+    );
+
+
+    scannerStartButton.addEventListener(
+      'click',
+      startScanner
+    );
+
+
+    scannerStopButton.addEventListener(
+      'click',
+      () => stopScanner()
+    );
+
+
+    scannerCloseButton.addEventListener(
+      'click',
+      closeScannerOverlay
+    );
+
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        if (scannerRunning) {
+          stopScanner(false);
+        }
+      }
+    );
   </script>
 </body>
 </html>
