@@ -391,6 +391,11 @@ let scannerRunning = false;
 let scanHandled = false;
 let scannerRequestSource = null;
 
+let lastDetectedIsbn = '';
+let matchingDetectionCount = 0;
+
+const REQUIRED_MATCHING_SCANS = 3;
+
     function hideSplashWhenReady() {
       if (
         minimumSplashFinished &&
@@ -421,8 +426,12 @@ let scannerRequestSource = null;
     }, 8000);
 
 
-    function openScannerOverlay() {
-      scanHandled = false;
+function openScannerOverlay() {
+  scanHandled = false;
+  lastDetectedIsbn = '';
+  matchingDetectionCount = 0;
+
+  scannerOverlay.classList.add('visible');
 
       scannerOverlay.classList.add('visible');
 
@@ -466,9 +475,11 @@ let scannerRequestSource = null;
         return;
       }
 
-      scanHandled = false;
+scanHandled = false;
+lastDetectedIsbn = '';
+matchingDetectionCount = 0;
 
-      scannerStartButton.disabled = true;
+scannerStartButton.disabled = true;
       scannerStopButton.disabled = true;
 
       scannerReader.classList.add('visible');
@@ -483,10 +494,9 @@ let scannerRequestSource = null;
           new Html5Qrcode(
             'scannerReader',
             {
-              formatsToSupport: [
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.UPC_A
-              ],
+            formatsToSupport: [
+  Html5QrcodeSupportedFormats.EAN_13
+],
               useBarCodeDetectorIfSupported: true
             }
           );
@@ -559,72 +569,139 @@ let scannerRequestSource = null;
     }
 
 
-    async function handleScanSuccess(
-      decodedText
-    ) {
-      if (scanHandled) {
-        return;
-      }
+async function handleScanSuccess(
+  decodedText
+) {
+  if (scanHandled) {
+    return;
+  }
 
-      const isbn =
-        normalizeScannedBarcode(decodedText);
+  const isbn =
+    normalizeScannedBarcode(decodedText);
 
-      if (!isbn) {
-        setScannerStatus(
-          `A barcode was detected, but it was not a valid ISBN: ${decodedText}`,
-          true
-        );
+  if (!isbn) {
+    lastDetectedIsbn = '';
+    matchingDetectionCount = 0;
 
-        return;
-      }
+    setScannerStatus(
+      'Keep the full ISBN barcode steady inside the frame.'
+    );
 
-      scanHandled = true;
+    return;
+  }
 
-      setScannerStatus(
-        `ISBN ${isbn} detected. Opening Book Intake…`
-      );
+  if (!isValidBookIsbn13(isbn)) {
+    lastDetectedIsbn = '';
+    matchingDetectionCount = 0;
 
-      await stopScanner(false);
+    setScannerStatus(
+      'Barcode detected, but it was not a valid book ISBN. Keep scanning.'
+    );
 
-      scannerOverlay.classList.remove('visible');
+    return;
+  }
 
-      scannerOverlay.setAttribute(
-        'aria-hidden',
-        'true'
-      );
+  if (isbn === lastDetectedIsbn) {
+    matchingDetectionCount += 1;
 
-if (scannerRequestSource) {
-  scannerRequestSource.postMessage(
-    {
-      type: 'porter-isbn-scan',
-      isbn
-    },
-    '*'
-  );
-} else {
+  } else {
+    lastDetectedIsbn = isbn;
+    matchingDetectionCount = 1;
+  }
+
+  if (
+    matchingDetectionCount <
+    REQUIRED_MATCHING_SCANS
+  ) {
+    setScannerStatus(
+      `Checking ISBN ${isbn}… ` +
+      `${matchingDetectionCount} of ` +
+      `${REQUIRED_MATCHING_SCANS} matching reads.`
+    );
+
+    return;
+  }
+
+  scanHandled = true;
+
   setScannerStatus(
-    'The library connection was lost. Close the scanner and try again.',
-    true
+    `ISBN ${isbn} confirmed. Opening Book Intake…`
   );
+
+  await stopScanner(false);
+
+  scannerOverlay.classList.remove('visible');
+
+  scannerOverlay.setAttribute(
+    'aria-hidden',
+    'true'
+  );
+
+  if (scannerRequestSource) {
+    scannerRequestSource.postMessage(
+      {
+        type: 'porter-isbn-scan',
+        isbn
+      },
+      '*'
+    );
+
+  } else {
+    setScannerStatus(
+      'The library connection was lost. Close the scanner and try again.',
+      true
+    );
+  }
 }
     }
 
 
-    function normalizeScannedBarcode(value) {
-      const digits = String(value || '')
-        .replace(/\D/g, '');
+function normalizeScannedBarcode(value) {
+  const digits = String(value || '')
+    .replace(/\D/g, '');
 
-      if (digits.length === 13) {
-        return digits;
-      }
+  if (digits.length !== 13) {
+    return '';
+  }
 
-      if (digits.length === 12) {
-        return `0${digits}`;
-      }
+  return digits;
+}
+function isValidBookIsbn13(isbn) {
+  if (!/^(978|979)\d{10}$/.test(isbn)) {
+    return false;
+  }
 
-      return '';
-    }
+  return passesIsbn13Checksum(isbn);
+}
 
+
+function passesIsbn13Checksum(isbn) {
+  if (!/^\d{13}$/.test(isbn)) {
+    return false;
+  }
+
+  let weightedSum = 0;
+
+  for (let index = 0; index < 12; index += 1) {
+    const digit = Number(isbn[index]);
+
+    weightedSum +=
+      index % 2 === 0
+        ? digit
+        : digit * 3;
+  }
+
+  const calculatedCheckDigit =
+    (10 - (weightedSum % 10)) % 10;
+
+  const actualCheckDigit =
+    Number(isbn[12]);
+
+  return (
+    calculatedCheckDigit ===
+    actualCheckDigit
+  );
+}
 
     async function stopScanner(
       updateStatus = true
